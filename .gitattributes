@@ -1,0 +1,7 @@
+# デフォルトLF
+* text=auto eol=lf
+
+# CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
