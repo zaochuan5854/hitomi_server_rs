@@ -1,0 +1,22 @@
+{
+    "name": "HitomiServerRs Dev Container",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/app",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "files.exclude": {
+                    "**/.devcontainer": true
+                }
+            },
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "vadimcn.vscode-lldb",
+                "fill-labs.dependi",
+                "usernamehw.errorlens"
+            ]
+        }
+    }
+}

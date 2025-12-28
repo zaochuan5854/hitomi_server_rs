@@ -1,0 +1,47 @@
+services:
+  # --- 開発環境 ---
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.dev
+    container_name: rust_dev_app
+    command: sleep infinity
+    
+    volumes:
+      - ..:/app
+      - ${RESP_JSON_DIR}:/app/data/resp_json
+      - ${RAW_JSON_DIR}:/app/data/raw_json
+
+      - rust_target:/app/target
+      - cargo_registry:/usr/local/cargo/registry
+
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      - CARGO_TARGET_DIR=/app/target
+      - SERVER_PORT=${SERVER_PORT}
+
+    depends_on:
+      - db
+    
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+
+  # --- PostgreSQL ---
+  db:
+    image: postgres:15-alpine
+    container_name: rust_dev_db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+
+volumes:
+  rust_target:
+  cargo_registry:
+  pg_data:
