@@ -9,8 +9,7 @@ services:
     
     volumes:
       - ..:/app
-      - ${RESP_JSON_DIR}:/app/data/resp_json
-      - ${RAW_JSON_DIR}:/app/data/raw_json
+      - ${DATA_DIR}:/app/data
 
       - rust_target:/app/target
       - cargo_registry:/usr/local/cargo/registry
