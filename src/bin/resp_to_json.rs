@@ -62,7 +62,7 @@ fn process_resp_file(input_path: &Path, output_path: &Path) -> Result<()> {
 
     for line in reader.lines() {
         let line = line?;
-        write_jsonl(&line, &mut writer).with_context(|| anyhow::anyhow!("An error occurred while processing line: {}", line))?;
+        write_jsonl(&line, &mut writer).inspect_err(|e| eprintln!("An error occurred while processing line: {}: {:?}", line, e)).ok();
     }
     writer.flush()?;
 
