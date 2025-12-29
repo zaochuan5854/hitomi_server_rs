@@ -5,9 +5,11 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+genson-rs = "0.2.0"
 rayon = "1.11.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
+simd-json = "0.13.11"
 
 # pureRustでクロスコンパイル容易
 sqlx = { version = "0.8", features = [
