@@ -24,6 +24,7 @@ pub struct Model {
     pub gallery_url: Option<String>,
     pub date_published: Option<String>,
     pub blocked: bool,
+    pub files: Json,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -34,7 +35,6 @@ pub enum Relation {
     GalleryGroup,
     GalleryCharacter,
     GalleryParody,
-    GalleryFile,
 }
 
 impl RelationTrait for Relation {
@@ -49,7 +49,6 @@ impl RelationTrait for Relation {
             Self::GalleryGroup => Entity::has_many(super::gallery_group::Entity).into(),
             Self::GalleryCharacter => Entity::has_many(super::gallery_character::Entity).into(),
             Self::GalleryParody => Entity::has_many(super::gallery_parody::Entity).into(),
-            Self::GalleryFile => Entity::has_many(super::gallery_file::Entity).into(),
         }
     }
 }
@@ -110,14 +109,6 @@ impl Related<super::parody::Entity> for Entity {
     }
 }
 
-impl Related<super::file::Entity> for Entity {
-    fn to() -> RelationDef {
-        super::gallery_file::Relation::File.def()
-    }
 
-    fn via() -> Option<RelationDef> {
-        Some(super::gallery_file::Relation::Gallery.def().rev())
-    }
-}
 
 impl ActiveModelBehavior for ActiveModel {}

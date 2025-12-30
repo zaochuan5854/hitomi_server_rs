@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS languages (id SERIAL PRIMARY KEY, name TEXT NOT NULL,
 CREATE INDEX IF NOT EXISTS idx_languages_name ON languages(name);
 
 -- Galleries table
-CREATE TABLE IF NOT EXISTS galleries (id SERIAL PRIMARY KEY, gallery_id INTEGER NOT NULL UNIQUE, title TEXT NOT NULL, date TEXT NOT NULL, type TEXT NOT NULL, external_id TEXT NOT NULL, scene_indexes INTEGER[] NOT NULL DEFAULT '{}', related_ids TEXT[] NOT NULL DEFAULT '{}', japanese_title TEXT, language_id INTEGER REFERENCES languages(id), translation_group_id TEXT[] NOT NULL DEFAULT '{}', video TEXT, videofilename TEXT, gallery_url TEXT, date_published TEXT, blocked BOOLEAN NOT NULL DEFAULT FALSE);
+CREATE TABLE IF NOT EXISTS galleries (id SERIAL PRIMARY KEY, gallery_id INTEGER NOT NULL UNIQUE, title TEXT NOT NULL, date TEXT NOT NULL, type TEXT NOT NULL, external_id TEXT NOT NULL, scene_indexes INTEGER[] NOT NULL DEFAULT '{}', related_ids TEXT[] NOT NULL DEFAULT '{}', japanese_title TEXT, language_id INTEGER REFERENCES languages(id), translation_group_id TEXT[] NOT NULL DEFAULT '{}', video TEXT, videofilename TEXT, gallery_url TEXT, date_published TEXT, blocked BOOLEAN NOT NULL DEFAULT FALSE, files JSONB NOT NULL DEFAULT '[]');
 CREATE INDEX IF NOT EXISTS idx_galleries_gallery_id ON galleries(gallery_id);
 CREATE INDEX IF NOT EXISTS idx_galleries_language_id ON galleries(language_id);
 
@@ -27,9 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_characters_character ON characters(character);
 CREATE TABLE IF NOT EXISTS parodies (id SERIAL PRIMARY KEY, parody TEXT NOT NULL, url TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_parodies_parody ON parodies(parody);
 
--- Files table
-CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, name TEXT NOT NULL, hash TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, hasavif BOOLEAN NOT NULL DEFAULT FALSE, haswebp BOOLEAN NOT NULL DEFAULT FALSE, hasjxl BOOLEAN NOT NULL DEFAULT FALSE, single BOOLEAN NOT NULL DEFAULT FALSE);
-CREATE INDEX IF NOT EXISTS idx_files_hash ON files(hash);
+
 
 -- Junction tables
 CREATE TABLE IF NOT EXISTS gallery_tags (gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE, PRIMARY KEY (gallery_id, tag_id));
@@ -52,6 +50,4 @@ CREATE TABLE IF NOT EXISTS gallery_parodies (gallery_id INTEGER NOT NULL REFEREN
 CREATE INDEX IF NOT EXISTS idx_gallery_parodies_gallery_id ON gallery_parodies(gallery_id);
 CREATE INDEX IF NOT EXISTS idx_gallery_parodies_parody_id ON gallery_parodies(parody_id);
 
-CREATE TABLE IF NOT EXISTS gallery_files (gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, PRIMARY KEY (gallery_id, file_id));
-CREATE INDEX IF NOT EXISTS idx_gallery_files_gallery_id ON gallery_files(gallery_id);
-CREATE INDEX IF NOT EXISTS idx_gallery_files_file_id ON gallery_files(file_id);
+

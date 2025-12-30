@@ -57,12 +57,6 @@ pub async fn insert_gallery(
         link_gallery_parody(&txn, gallery_id, parody_id).await?;
     }
 
-    // 8. File の upsert と link
-    for file in &gallery.files {
-        let file_id = upsert_file(&txn, file).await?;
-        link_gallery_file(&txn, gallery_id, file_id).await?;
-    }
-
     txn.commit().await?;
     Ok(())
 }
@@ -105,6 +99,7 @@ async fn upsert_gallery(
         gallery_url: Set(gallery.gallery_url.clone()),
         date_published: Set(gallery.date_published.clone()),
         blocked: Set(gallery.blocked),
+        files: Set(serde_json::to_value(&gallery.files).unwrap()),
     };
 
     let result = if existing.is_some() {
@@ -402,55 +397,4 @@ async fn link_gallery_parody(
     Ok(())
 }
 
-/// File を upsert（hash で判定）
-async fn upsert_file(
-    db: &DatabaseTransaction,
-    file: &domain::gallery::File,
-) -> Result<i32, DbErr> {
-    let existing = entity::file::Entity::find()
-        .filter(entity::file::Column::Hash.eq(&file.hash))
-        .one(db)
-        .await?;
 
-    let file_model = entity::file::ActiveModel {
-        id: existing.as_ref().map(|f| Set(f.id)).unwrap_or(NotSet),
-        name: Set(file.name.clone()),
-        hash: Set(file.hash.clone()),
-        width: Set(file.width),
-        height: Set(file.height),
-        hasavif: Set(file.hasavif),
-        haswebp: Set(file.haswebp),
-        hasjxl: Set(file.hasjxl),
-        single: Set(file.single),
-    };
-
-    let result = if existing.is_some() {
-        file_model.update(db).await?
-    } else {
-        file_model.insert(db).await?
-    };
-
-    Ok(result.id)
-}
-
-async fn link_gallery_file(
-    db: &DatabaseTransaction,
-    gallery_id: i32,
-    file_id: i32,
-) -> Result<(), DbErr> {
-    let existing = entity::gallery_file::Entity::find()
-        .filter(entity::gallery_file::Column::GalleryId.eq(gallery_id))
-        .filter(entity::gallery_file::Column::FileId.eq(file_id))
-        .one(db)
-        .await?;
-
-    if existing.is_none() {
-        let link = entity::gallery_file::ActiveModel {
-            gallery_id: Set(gallery_id),
-            file_id: Set(file_id),
-        };
-        link.insert(db).await?;
-    }
-
-    Ok(())
-}
