@@ -1,5 +1,5 @@
 -- Languages table
-CREATE TABLE IF NOT EXISTS languages (id SERIAL PRIMARY KEY, name TEXT NOT NULL, local_name TEXT, url TEXT);
+CREATE TABLE IF NOT EXISTS languages (id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, local_name TEXT, url TEXT);
 CREATE INDEX IF NOT EXISTS idx_languages_name ON languages(name);
 
 -- Galleries table
@@ -8,26 +8,24 @@ CREATE INDEX IF NOT EXISTS idx_galleries_gallery_id ON galleries(gallery_id);
 CREATE INDEX IF NOT EXISTS idx_galleries_language_id ON galleries(language_id);
 
 -- Tags table
-CREATE TABLE IF NOT EXISTS tags (id SERIAL PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, male BOOLEAN NOT NULL DEFAULT FALSE, female BOOLEAN NOT NULL DEFAULT FALSE);
+CREATE TABLE IF NOT EXISTS tags (id SERIAL PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, male BOOLEAN NOT NULL DEFAULT FALSE, female BOOLEAN NOT NULL DEFAULT FALSE, UNIQUE(name, male, female));
 CREATE INDEX IF NOT EXISTS idx_tags_name_male_female ON tags(name, male, female);
 
 -- Artists table
-CREATE TABLE IF NOT EXISTS artists (id SERIAL PRIMARY KEY, artist TEXT NOT NULL, url TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS artists (id SERIAL PRIMARY KEY, artist TEXT NOT NULL UNIQUE, url TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_artists_artist ON artists(artist);
 
 -- Groups table
-CREATE TABLE IF NOT EXISTS groups (id SERIAL PRIMARY KEY, "group" TEXT NOT NULL, url TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS groups (id SERIAL PRIMARY KEY, "group" TEXT NOT NULL UNIQUE, url TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_groups_group ON groups("group");
 
 -- Characters table
-CREATE TABLE IF NOT EXISTS characters (id SERIAL PRIMARY KEY, character TEXT NOT NULL, url TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS characters (id SERIAL PRIMARY KEY, character TEXT NOT NULL UNIQUE, url TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_characters_character ON characters(character);
 
 -- Parodies table
-CREATE TABLE IF NOT EXISTS parodies (id SERIAL PRIMARY KEY, parody TEXT NOT NULL, url TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS parodies (id SERIAL PRIMARY KEY, parody TEXT NOT NULL UNIQUE, url TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_parodies_parody ON parodies(parody);
-
-
 
 -- Junction tables
 CREATE TABLE IF NOT EXISTS gallery_tags (gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE, PRIMARY KEY (gallery_id, tag_id));
@@ -49,5 +47,3 @@ CREATE INDEX IF NOT EXISTS idx_gallery_characters_character_id ON gallery_charac
 CREATE TABLE IF NOT EXISTS gallery_parodies (gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE, parody_id INTEGER NOT NULL REFERENCES parodies(id) ON DELETE CASCADE, PRIMARY KEY (gallery_id, parody_id));
 CREATE INDEX IF NOT EXISTS idx_gallery_parodies_gallery_id ON gallery_parodies(gallery_id);
 CREATE INDEX IF NOT EXISTS idx_gallery_parodies_parody_id ON gallery_parodies(parody_id);
-
-
