@@ -1,4 +1,4 @@
-use hitomi_server_rs::model::Gallery;
+use hitomi_server_rs::domain::gallery::Gallery;
 use anyhow::{Context,  Result};
 use std::path::{Path};
 use std::fs::File;

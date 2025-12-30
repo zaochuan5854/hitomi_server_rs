@@ -5,12 +5,12 @@ use serde_with::{serde_as, DeserializeAs, SerializeAs, DefaultOnNull};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Gallery {
     // Required fields
-    pub gallery_id: u32,
+    pub gallery_id: i32,
     pub title: String,
     pub date: String,
     pub files: Vec<File>,
     pub languages: Vec<Language>,
-    pub scene_indexes: Vec<u32>,
+    pub scene_indexes: Vec<i32>,
     #[serde(rename = "type")]
     pub type_: String,
     
@@ -130,8 +130,8 @@ pub struct File {
     // Required fields
     pub name: String,
     pub hash: String,
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
 
     // Required and dynamic type fields
     #[serde_as(as = "FlexibleBool")]
