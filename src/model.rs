@@ -1,32 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_with::{serde_as, DisplayFromStr, DeserializeAs, SerializeAs, DefaultOnNull, PickFirst, Same};
-
-struct FlexibleBool;
-
-impl<'de> DeserializeAs<'de, bool> for FlexibleBool {
-    fn deserialize_as<D>(deserializer: D) -> Result<bool, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let v = serde_json::Value::deserialize(deserializer)?;
-        match v {
-            serde_json::Value::Bool(b) => Ok(b),
-            serde_json::Value::Number(n) => Ok(n.as_i64() == Some(1)),
-            serde_json::Value::String(s) => Ok(s == "1" || s.to_lowercase() == "true"),
-            _ => Ok(false),
-        }
-    }
-}
-
-impl SerializeAs<bool> for FlexibleBool {
-    fn serialize_as<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        // 普通の true / false としてシリアライズ
-        serializer.serialize_bool(*value)
-    }
-}
+use serde_with::{serde_as, DeserializeAs, SerializeAs, DefaultOnNull};
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,10 +15,10 @@ pub struct Gallery {
     pub type_: String,
     
     // Required and dynamic type fields
-    #[serde_as(as = "PickFirst<(DisplayFromStr, Same)>")]
+    #[serde_as(as = "FlexibleString")]
     // [int | str] -> str
     pub id: String,
-    #[serde_as(as = "Vec<PickFirst<(DisplayFromStr, Same)>>")]
+    #[serde_as(as = "Vec<FlexibleString>")]
     // [WrappedArray of int | WrappedArray of str] -> Vec<str>
     pub related: Vec<String>,
 
@@ -74,18 +47,21 @@ pub struct Gallery {
     pub characters: Vec<Character>,
     #[serde(default)]
     #[serde_as(as = "DefaultOnNull")]
-    pub parodys: Vec<Parody>,
+    #[serde(rename = "parodies", alias = "parodys")]
+    pub parodies: Vec<Parody>,
     #[serde(default)]
     #[serde_as(as = "DefaultOnNull")]
     pub tags: Vec<Tag>,
 
     // Not required fields
     #[serde(default)]
-    pub galleryurl: Option<String>,
+    #[serde(rename = "gallery_url", alias = "galleryurl")]
+    pub gallery_url: Option<String>,
 
     // Not required and nullable fields
     #[serde(default)]
-    pub datepublished: Option<String>,
+    #[serde(rename = "date_published", alias = "datepublished")]
+    pub date_published: Option<String>,
 
     // Not required, nullable and dynamic type fields
     #[serde(default)]
@@ -103,7 +79,7 @@ pub struct Language {
     pub url: String,
 
     // Required and dynamic type fields
-    #[serde_as(as = "PickFirst<(DisplayFromStr, Same)>")]
+    #[serde_as(as = "FlexibleString")]
     // [int | str] -> str
     pub galleryid: String,
 }
@@ -171,4 +147,62 @@ pub struct File {
     #[serde(default)]
     #[serde_as(as = "DefaultOnNull<FlexibleBool>")]
     pub single: bool,
+}
+
+struct FlexibleString;
+
+impl<'de> DeserializeAs<'de, String> for FlexibleString {
+    fn deserialize_as<D>(deserializer: D) -> Result<String, D::Error>
+    where D: Deserializer<'de> {
+        // Untaggedな列挙型をローカルで定義して、Serdeに型判定を任せる
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrInt {
+            Str(String),
+            Int(i64),
+            Float(f64),
+        }
+
+        match StringOrInt::deserialize(deserializer)? {
+            StringOrInt::Str(s) => Ok(s),
+            StringOrInt::Int(i) => Ok(i.to_string()),
+            StringOrInt::Float(f) => Ok(f.to_string()),
+        }
+    }
+}
+
+impl SerializeAs<String>  for FlexibleString {
+    fn serialize_as<S>(value: &String, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        // そのまま文字列としてシリアライズ
+        serializer.serialize_str(value)
+    }
+    
+}
+
+struct FlexibleBool;
+
+impl<'de> DeserializeAs<'de, bool> for FlexibleBool {
+    fn deserialize_as<D>(deserializer: D) -> Result<bool, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let v = serde_json::Value::deserialize(deserializer)?;
+        match v {
+            serde_json::Value::Bool(b) => Ok(b),
+            serde_json::Value::Number(n) => Ok(n.as_i64() == Some(1)),
+            serde_json::Value::String(s) => Ok(s == "1" || s.to_lowercase() == "true"),
+            _ => Ok(false),
+        }
+    }
+}
+
+impl SerializeAs<bool> for FlexibleBool {
+    fn serialize_as<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // 普通の true / false としてシリアライズ
+        serializer.serialize_bool(*value)
+    }
 }
