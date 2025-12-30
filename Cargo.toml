@@ -3,6 +3,18 @@ name = "hitomi_server_rs"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "resp_to_json"
+path = "src/bin/resp_to_json.rs"
+
+[[bin]]
+name = "analyze_schema"
+path = "src/bin/analyze_schema.rs"
+
+[[bin]]
+name = "normalize_json"
+path = "src/bin/normalize_json.rs"
+
 [dependencies]
 anyhow = "1.0.100"
 genson-rs = "0.2.0"
