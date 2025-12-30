@@ -8,6 +8,8 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use indicatif::{ProgressBar, ProgressStyle};
 
+const BATCH_SIZE: usize = 500;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // 1. DATABASE_URL を取得
@@ -16,7 +18,10 @@ async fn main() -> Result<()> {
 
     // 2. DB接続
     let mut opt = ConnectOptions::new(&database_url).to_owned();
-    opt.max_connections(10);
+    opt.max_connections(20);
+    opt.connect_timeout(std::time::Duration::from_secs(10));
+    opt.acquire_timeout(std::time::Duration::from_secs(10));
+    opt.set_schema_search_path("public");
     let db = Database::connect(opt).await
         .context("Failed to connect to database")?;
 
@@ -69,32 +74,14 @@ async fn main() -> Result<()> {
             .unwrap()
             .progress_chars("#>-"));
 
-        // 並列処理のためのセマフォ（同時実行数5）
-        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(5));
-        let mut handles = vec![];
-
+        // 順次処理
         for entry in entries {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                let db = db.clone();
-                let semaphore = semaphore.clone();
-                let pb = pb.clone();
-                
-                let handle = tokio::spawn(async move {
-                    let _permit = semaphore.acquire().await.context("Failed to acquire semaphore")?;
-                    // println!("Start processing: {:?}", path);
-                    let result = import_jsonl_to_db(&db, &path, pb).await;
-                    // println!("Finished processing: {:?}", path);
-                    result
-                });
-                handles.push(handle);
+                import_jsonl_to_db(&db, &path, pb.clone()).await?;
             }
         }
-
-        // 全タスクの完了を待機
-        for handle in handles {
-            handle.await.context("Task join failed")??;
-        }
+        
         pb.finish_with_message("All imports completed");
     }
 
@@ -165,6 +152,7 @@ async fn import_jsonl_to_db(
     let reader = BufReader::new(pb.wrap_read(file));
 
     let mut line_number = 0;
+    let mut chunk = Vec::with_capacity(BATCH_SIZE);
 
     for line in reader.lines() {
         line_number += 1;
@@ -178,19 +166,22 @@ async fn import_jsonl_to_db(
         // JSONをパース
         match serde_json::from_str::<Gallery>(&line) {
             Ok(gallery) => {
-                // DBに保存
-                match galleries_mapper::insert_gallery(db, gallery).await {
-                    Ok(_) => {
-                        continue;
-                    }
-                    Err(e) => {
-                        pb.println(format!("Failed to insert gallery at line {}: {}", line_number, e));
+                chunk.push(gallery);
+                if chunk.len() >= BATCH_SIZE {
+                    if let Err(e) = galleries_mapper::insert_many_galleries(db, std::mem::take(&mut chunk)).await {
+                        pb.println(format!("Failed to insert chunk at line {}: {:?}", line_number, e));
                     }
                 }
             }
             Err(e) => {
                 pb.println(format!("Failed to parse JSON at line {}: {}", line_number, e));
             }
+        }
+    }
+
+    if !chunk.is_empty() {
+        if let Err(e) = galleries_mapper::insert_many_galleries(db, chunk).await {
+            pb.println(format!("Failed to insert remaining chunk: {:?}", e));
         }
     }
 
