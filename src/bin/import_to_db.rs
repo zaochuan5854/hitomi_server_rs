@@ -6,6 +6,7 @@ use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,18 +27,72 @@ async fn main() -> Result<()> {
     create_tables(&db).await?;
     println!("Tables created successfully");
 
-    // 3. JSONLファイルパスを取得（引数またはデフォルト）
+    // 3. JSONLファイルパスを取得して処理
     let args: Vec<String> = env::args().collect();
-    let jsonl_path = if args.len() > 1 {
-        &args[1]
+
+    if args.len() > 1 {
+        let jsonl_path = &args[1];
+        println!("Reading from: {}", jsonl_path);
+        let path = Path::new(jsonl_path);
+        let metadata = std::fs::metadata(path)?;
+        let pb = ProgressBar::new(metadata.len());
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .progress_chars("#>-"));
+        
+        import_jsonl_to_db(&db, path, pb.clone()).await?;
+        pb.finish_with_message("Import completed");
     } else {
-        "data/normalized_json/000000001-000100000.json"
-    };
+        let dir_path = Path::new("data/normalized_json/");
+        let mut entries: Vec<_> = std::fs::read_dir(dir_path)?
+            .filter_map(|e| e.ok())
+            .collect();
 
-    println!("Reading from: {}", jsonl_path);
+        // ファイル名順にソート
+        entries.sort_by_key(|e| e.path());
 
-    // 4. JSONLファイルを読み込んでDBに保存
-    import_jsonl_to_db(&db, Path::new(jsonl_path)).await?;
+        // 全ファイルサイズの合計を計算
+        let total_size: u64 = entries.iter()
+            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("json"))
+            .map(|e| e.metadata().map(|m| m.len()).unwrap_or(0))
+            .sum();
+
+        // プログレスバーの設定
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .progress_chars("#>-"));
+
+        // 並列処理のためのセマフォ（同時実行数5）
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(5));
+        let mut handles = vec![];
+
+        for entry in entries {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                let db = db.clone();
+                let semaphore = semaphore.clone();
+                let pb = pb.clone();
+                
+                let handle = tokio::spawn(async move {
+                    let _permit = semaphore.acquire().await.context("Failed to acquire semaphore")?;
+                    // println!("Start processing: {:?}", path);
+                    let result = import_jsonl_to_db(&db, &path, pb).await;
+                    // println!("Finished processing: {:?}", path);
+                    result
+                });
+                handles.push(handle);
+            }
+        }
+
+        // 全タスクの完了を待機
+        for handle in handles {
+            handle.await.context("Task join failed")??;
+        }
+        pb.finish_with_message("All imports completed");
+    }
 
     println!("Import completed successfully");
 
@@ -67,13 +122,14 @@ async fn create_tables(db: &sea_orm::DatabaseConnection) -> Result<()> {
 async fn import_jsonl_to_db(
     db: &sea_orm::DatabaseConnection,
     jsonl_path: &Path,
+    pb: ProgressBar,
 ) -> Result<()> {
     let file = File::open(jsonl_path)
         .with_context(|| format!("Failed to open file: {:?}", jsonl_path))?;
-    let reader = BufReader::new(file);
+    
+    // プログレスバーでラップ
+    let reader = BufReader::new(pb.wrap_read(file));
 
-    let mut success_count = 0;
-    let mut error_count = 0;
     let mut line_number = 0;
 
     for line in reader.lines() {
@@ -91,28 +147,21 @@ async fn import_jsonl_to_db(
                 // DBに保存
                 match galleries_mapper::insert_gallery(db, gallery).await {
                     Ok(_) => {
-                        success_count += 1;
-                        if success_count % 100 == 0 {
-                            println!("Imported {} galleries...", success_count);
-                        }
+                        continue;
                     }
                     Err(e) => {
-                        error_count += 1;
-                        eprintln!("Failed to insert gallery at line {}: {}", line_number, e);
+                        pb.println(format!("Failed to insert gallery at line {}: {}", line_number, e));
                     }
                 }
             }
             Err(e) => {
-                error_count += 1;
-                eprintln!("Failed to parse JSON at line {}: {}", line_number, e);
+                pb.println(format!("Failed to parse JSON at line {}: {}", line_number, e));
             }
         }
     }
 
-    println!("\nImport summary:");
-    println!("  Successfully imported: {}", success_count);
-    println!("  Failed: {}", error_count);
-    println!("  Total lines processed: {}", line_number);
+    // 個別のファイル完了ログも削除または必要なら pb.println で出力
+    // pb.println(format!("Finished: {:?} (Success: {}, Failed: {})", jsonl_path, success_count, error_count));
 
     Ok(())
 }
