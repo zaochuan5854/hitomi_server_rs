@@ -15,6 +15,10 @@ path = "src/bin/analyze_schema.rs"
 name = "normalize_json"
 path = "src/bin/normalize_json.rs"
 
+[[bin]]
+name = "import_to_db"
+path = "src/bin/import_to_db.rs"
+
 [dependencies]
 anyhow = "1.0.100"
 genson-rs = "0.2.0"
