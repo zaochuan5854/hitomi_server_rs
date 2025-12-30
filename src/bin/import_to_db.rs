@@ -22,6 +22,10 @@ async fn main() -> Result<()> {
 
     println!("Connected to database");
 
+    // 2.4. テーブル削除 (スキーマ変更のため)
+    println!("Dropping tables...");
+    drop_tables(&db).await?;
+
     // 2.5. テーブル作成
     println!("Creating tables...");
     create_tables(&db).await?;
@@ -106,6 +110,36 @@ async fn create_tables(db: &sea_orm::DatabaseConnection) -> Result<()> {
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .collect();
+
+    for sql in statements {
+        db.execute_raw(Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            sql.to_string(),
+        ))
+        .await
+        .with_context(|| format!("Failed to execute: {}", sql))?;
+    }
+
+    Ok(())
+}
+
+async fn drop_tables(db: &sea_orm::DatabaseConnection) -> Result<()> {
+    let statements = vec![
+        "DROP TABLE IF EXISTS gallery_files CASCADE",
+        "DROP TABLE IF EXISTS files CASCADE",
+        "DROP TABLE IF EXISTS gallery_tags CASCADE",
+        "DROP TABLE IF EXISTS gallery_artists CASCADE",
+        "DROP TABLE IF EXISTS gallery_groups CASCADE",
+        "DROP TABLE IF EXISTS gallery_characters CASCADE",
+        "DROP TABLE IF EXISTS gallery_parodies CASCADE",
+        "DROP TABLE IF EXISTS galleries CASCADE",
+        "DROP TABLE IF EXISTS languages CASCADE",
+        "DROP TABLE IF EXISTS tags CASCADE",
+        "DROP TABLE IF EXISTS artists CASCADE",
+        "DROP TABLE IF EXISTS groups CASCADE",
+        "DROP TABLE IF EXISTS characters CASCADE",
+        "DROP TABLE IF EXISTS parodies CASCADE",
+    ];
 
     for sql in statements {
         db.execute_raw(Statement::from_string(
