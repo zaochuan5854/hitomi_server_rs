@@ -12,10 +12,7 @@ serde_json = "1.0.148"
 serde_with = "3.16.1"
 simd-json = "0.13.11"
 
-# pureRustでクロスコンパイル容易
-sqlx = { version = "0.8", features = [
-    "runtime-tokio",
-    "tls-rustls-ring-native-roots",
-    "postgres",
-] }
 tokio = { version = "1.48.0", features = ["full"] }
+
+sea-orm = { version = "2.0.0-rc", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
+
