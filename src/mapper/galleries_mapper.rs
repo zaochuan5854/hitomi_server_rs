@@ -106,6 +106,7 @@ pub async fn insert_many_galleries(
     // insert_many を実行（ON CONFLICT 付き）
     Gallery::insert_many(gallery_models)
         .on_conflict(on_conflict)
+        .do_nothing()
         .exec(&txn)
         .await?;
     
@@ -207,26 +208,31 @@ pub async fn insert_many_galleries(
     if !gallery_tags.is_empty() {
         entity::gallery_tag::Entity::insert_many(gallery_tags)
             .on_conflict(OnConflict::columns([entity::gallery_tag::Column::GalleryId, entity::gallery_tag::Column::TagId]).do_nothing().to_owned())
+            .do_nothing()
             .exec(&txn).await?;
     }
     if !gallery_artists.is_empty() {
         entity::gallery_artist::Entity::insert_many(gallery_artists)
             .on_conflict(OnConflict::columns([entity::gallery_artist::Column::GalleryId, entity::gallery_artist::Column::ArtistId]).do_nothing().to_owned())
+            .do_nothing()
             .exec(&txn).await?;
     }
     if !gallery_groups.is_empty() {
         entity::gallery_group::Entity::insert_many(gallery_groups)
             .on_conflict(OnConflict::columns([entity::gallery_group::Column::GalleryId, entity::gallery_group::Column::GroupId]).do_nothing().to_owned())
+            .do_nothing()
             .exec(&txn).await?;
     }
     if !gallery_characters.is_empty() {
         entity::gallery_character::Entity::insert_many(gallery_characters)
             .on_conflict(OnConflict::columns([entity::gallery_character::Column::GalleryId, entity::gallery_character::Column::CharacterId]).do_nothing().to_owned())
+            .do_nothing()
             .exec(&txn).await?;
     }
     if !gallery_parodies.is_empty() {
         entity::gallery_parody::Entity::insert_many(gallery_parodies)
             .on_conflict(OnConflict::columns([entity::gallery_parody::Column::GalleryId, entity::gallery_parody::Column::ParodyId]).do_nothing().to_owned())
+            .do_nothing()
             .exec(&txn).await?;
     }
 
@@ -287,6 +293,7 @@ async fn upsert_languages(
                     .update_columns([entity::language::Column::LocalName, entity::language::Column::Url])
                     .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
         
@@ -341,6 +348,7 @@ async fn upsert_tags(
                 .update_column(entity::tag::Column::Url)
                 .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
     }
@@ -397,6 +405,7 @@ async fn upsert_artists(
                     .update_column(entity::artist::Column::Url)
                     .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
     }
@@ -448,6 +457,7 @@ async fn upsert_groups(
                     .update_column(entity::group::Column::Url)
                     .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
     }
@@ -499,6 +509,7 @@ async fn upsert_characters(
                     .update_column(entity::character::Column::Url)
                     .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
     }
@@ -550,6 +561,7 @@ async fn upsert_parodies(
                     .update_column(entity::parody::Column::Url)
                     .to_owned()
             )
+            .do_nothing()
             .exec(db)
             .await?;
     }
