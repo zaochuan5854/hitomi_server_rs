@@ -1,4 +1,5 @@
 use sea_orm::entity::prelude::*;
+use chrono::{DateTime, FixedOffset, NaiveDate};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "galleries")]
@@ -8,7 +9,7 @@ pub struct Model {
 
     pub gallery_id: i32,
     pub title: String,
-    pub date: String,
+    pub date: DateTime<FixedOffset>,
     #[sea_orm(column_name = "type")]
     pub type_: String,
     pub external_id: String,
@@ -22,7 +23,7 @@ pub struct Model {
     pub video: Option<String>,
     pub videofilename: Option<String>,
     pub gallery_url: Option<String>,
-    pub date_published: Option<String>,
+    pub date_published: Option<NaiveDate>,
     pub blocked: bool,
     pub files: Json,
 }

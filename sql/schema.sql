@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS languages (id SERIAL PRIMARY KEY, name TEXT NOT NULL 
 CREATE INDEX IF NOT EXISTS idx_languages_name ON languages(name);
 
 -- Galleries table
-CREATE TABLE IF NOT EXISTS galleries (id SERIAL PRIMARY KEY, gallery_id INTEGER NOT NULL UNIQUE, title TEXT NOT NULL, date TEXT NOT NULL, type TEXT NOT NULL, external_id TEXT NOT NULL, scene_indexes INTEGER[] NOT NULL DEFAULT '{}', related_ids TEXT[] NOT NULL DEFAULT '{}', japanese_title TEXT, language_id INTEGER REFERENCES languages(id), translation_group_id TEXT[] NOT NULL DEFAULT '{}', video TEXT, videofilename TEXT, gallery_url TEXT, date_published TEXT, blocked BOOLEAN NOT NULL DEFAULT FALSE, files JSONB NOT NULL DEFAULT '[]');
+CREATE TABLE IF NOT EXISTS galleries (id SERIAL PRIMARY KEY, gallery_id INTEGER NOT NULL UNIQUE, title TEXT NOT NULL, date TIMESTAMPTZ NOT NULL, type TEXT NOT NULL, external_id TEXT NOT NULL, scene_indexes INTEGER[] NOT NULL DEFAULT '{}', related_ids TEXT[] NOT NULL DEFAULT '{}', japanese_title TEXT, language_id INTEGER REFERENCES languages(id), translation_group_id TEXT[] NOT NULL DEFAULT '{}', video TEXT, videofilename TEXT, gallery_url TEXT, date_published DATE, blocked BOOLEAN NOT NULL DEFAULT FALSE, files JSONB NOT NULL DEFAULT '[]');
 CREATE INDEX IF NOT EXISTS idx_galleries_gallery_id ON galleries(gallery_id);
 CREATE INDEX IF NOT EXISTS idx_galleries_language_id ON galleries(language_id);
 
