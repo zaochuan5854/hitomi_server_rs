@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::{serde_as, DeserializeAs, SerializeAs, DefaultOnNull};
+use chrono::{DateTime, FixedOffset, NaiveDate};
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
@@ -7,7 +8,8 @@ pub struct Gallery {
     // Required fields
     pub gallery_id: i32,
     pub title: String,
-    pub date: String,
+    #[serde_as(as = "FlexibleDateTime")]
+    pub date: DateTime<FixedOffset>,
     pub files: Vec<File>,
     pub languages: Vec<Language>,
     pub scene_indexes: Vec<i32>,
@@ -61,7 +63,7 @@ pub struct Gallery {
     // Not required and nullable fields
     #[serde(default)]
     #[serde(rename = "date_published", alias = "datepublished")]
-    pub date_published: Option<String>,
+    pub date_published: Option<NaiveDate>,
 
     // Not required, nullable and dynamic type fields
     #[serde(default)]
@@ -204,5 +206,48 @@ impl SerializeAs<bool> for FlexibleBool {
     {
         // 普通の true / false としてシリアライズ
         serializer.serialize_bool(*value)
+    }
+}
+
+struct FlexibleDateTime;
+
+impl<'de> DeserializeAs<'de, DateTime<FixedOffset>> for FlexibleDateTime {
+    fn deserialize_as<D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+
+        // ISO 8601
+        if let Ok(dt) = DateTime::parse_from_rfc3339(&s) {
+            return Ok(dt);
+        }
+        // その他
+        let formats = [
+            "%Y-%m-%d %H:%M:%S%#z", // raw_jsonでよく見る形式
+            "%Y-%m-%d %H:%M:%S%.f%#z", // ミリ秒付き
+            "%Y/%m/%d %H:%M:%S%#z", // スラッシュ区切り
+            "%a, %d %b %Y %H:%M:%S %z", // RFC 2822 (メールヘッダー形式)
+        ];
+        for fmt in formats {
+            if let Ok(dt) = DateTime::parse_from_str(&s, fmt) {
+                return Ok(dt);
+            }
+        }
+
+        Err(serde::de::Error::custom(format!(
+            "Could not parse date: {}. Tried ISO 8601 and other common formats.",
+            s
+        )))
+    }
+}
+
+impl SerializeAs<DateTime<FixedOffset>> for FlexibleDateTime {
+    fn serialize_as<S>(value: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // ISO 8601形式でシリアライズ
+        serializer.serialize_str(&value.to_rfc3339())
     }
 }
