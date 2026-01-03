@@ -1,5 +1,11 @@
-fn main() {
-    println!("Hello, world!");
+use axum::{routing::get, Router};
+
+#[tokio::main]
+async fn main() {
+    let server_port = std::env::var("SERVER_PORT").expect("Failed to get SERVER_PORT");
+    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", server_port)).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 #[cfg(test)]
