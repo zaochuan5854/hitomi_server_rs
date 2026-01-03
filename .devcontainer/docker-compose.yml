@@ -16,11 +16,13 @@ services:
 
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      - DATABASE_URL_BINARY=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_binary:${POSTGRES_PORT}/${POSTGRES_DB_BINARY}
       - CARGO_TARGET_DIR=/app/target
       - SERVER_PORT=${SERVER_PORT}
 
     depends_on:
       - db
+      - db_binary
     
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
@@ -38,9 +40,25 @@ services:
       - pg_data:/var/lib/postgresql/data
     
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - "5432:${POSTGRES_PORT}"
+
+  # --- PostgreSQL for binary data ---
+  db_binary:
+    image: postgres:15-alpine
+    container_name: rust_dev_db_binary
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB_BINARY}
+    
+    volumes:
+      - pg_data_binary:/var/lib/postgresql/data
+    
+    ports:
+      - "5433:${POSTGRES_PORT}"
 
 volumes:
   rust_target:
   cargo_registry:
   pg_data:
+  pg_data_binary:
