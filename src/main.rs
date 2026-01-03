@@ -1,9 +1,22 @@
-use axum::{routing::get, Router};
+use axum::{routing::{get, post}, Router};
+use sea_orm::{ConnectOptions, Database};
+use std::env;
+use hitomi_server_rs::api::perform_sql::perform_sql;
 
 #[tokio::main]
 async fn main() {
-    let server_port = std::env::var("SERVER_PORT").expect("Failed to get SERVER_PORT");
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    let server_port = env::var("SERVER_PORT").expect("Failed to get SERVER_PORT");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+
+    let mut opt = ConnectOptions::new(&database_url).to_owned();
+    opt.max_connections(100);
+    let db = Database::connect(opt).await.expect("Failed to connect to database");
+
+    let app = Router::new()
+        .route("/", get(|| async { "Hello, World!" }))
+        .route("/sql", post(perform_sql))
+        .with_state(db);
+
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", server_port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -92,5 +105,21 @@ mod tests {
         assert_eq!(normalized_json, fbs_normalized_json, "Roundtrip JSON does not match original");
 
         println!("Roundtrip test passed successfully!");
+    }
+
+    #[test]
+    fn test_sql_validation() {
+    let queries = vec![
+        ("SELECT gallery_id FROM galleries WHERE gallery_id = 123", true),
+        ("SELECT gallery_id FROM galleries WHERE artist_id IN (SELECT artist_id FROM artists WHERE name = 'example')", true),
+        ("SELECT title FROM galleries WHERE gallery_id = 123", false),
+        ("SELECT * FROM galleries WHERE gallery_id = 123", false),
+        ("SELECT gallery_id, title FROM galleries WHERE gallery_id = 123", false),
+    ];
+    for (query, should_pass) in queries {
+        let result = hitomi_server_rs::api::perform_sql::is_only_gallery_id_returned(query);
+        assert_eq!(result, should_pass, "Query validation failed for query: {}", query);
+    }
+    println!("SQL validation tests completed.");
     }
 }
