@@ -1,0 +1,84 @@
+namespace MyApp.Schema;
+
+table File {
+  name: string (required);
+  hash: string (required);
+  width: int;
+  height: int;
+  hasavif: bool;
+  haswebp: bool;
+  hasjxl: bool;
+  single: bool;
+}
+
+table Language {
+  name: string (required);
+  language_localname: string (required);
+  url: string (required);
+  galleryid: string (required);
+}
+
+table Artist {
+  artist: string (required);
+  url: string (required);
+}
+
+table Group {
+  group: string (required);
+  url: string (required);
+}
+
+table Character {
+  character: string (required);
+  url: string (required);
+}
+
+table Parody {
+  parody: string (required);
+  url: string (required);
+}
+
+table Tag {
+  tag: string (required);
+  url: string (required);
+  male: bool = false;
+  female: bool = false;
+}
+
+table Gallery {
+  gallery_id: int;
+  title: string (required);
+  date: string (required); 
+  
+  files: [File];
+  languages: [Language];
+  scene_indexes: [int];
+  
+  type: string (required);
+  
+  id: string (required);
+  related: [string];
+
+  // Nullable
+  japanese_title: string;
+  language: string;
+  language_localname: string;
+  language_url: string;
+  video: string;
+  videofilename: string;
+
+  // Vec<T>
+  artists: [Artist];
+  groups: [Group];
+  characters: [Character];
+  parodies: [Parody];
+  tags: [Tag];
+
+  gallery_url: string;
+  
+  date_published: string;
+
+  blocked: bool = false;
+}
+
+root_type Gallery;
